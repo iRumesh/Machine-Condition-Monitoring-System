@@ -78,6 +78,7 @@ void Task4code( void * Parameters );
 
 
 void setupWiFi() {
+  WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("Connecting to WiFi");
   int retries = 0;
