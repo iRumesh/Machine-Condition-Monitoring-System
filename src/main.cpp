@@ -1,6 +1,6 @@
 /*============================================================
 
-Project name : My Smart Device
+Project name : Machine Monitoring System
 Project purpose : Preventive Maintenance, Monitoring
 Description: System includes 
                 2 x CT sensor (600A)
@@ -8,7 +8,8 @@ Description: System includes
                 1 x IR Temperature Sensor
                 Data sent every 1 second to ThingsBoard
                 4 Tasks running on ESP32
-Last updated date : 31/05/2025
+                Sending Data over WiFi
+Last updated date : 02/06/2025
 Author: 
 
 *============================================================/
@@ -20,6 +21,20 @@ Author:
 #include <PubSubClient.h>
 #include <config.h>
 
+//========Print Macro========================================/
+#define DEBUG 1
+
+#if DEBUG == 1
+#define debug(x) Serial.print(x)
+#define debugln(x) Serial.println(x)
+#define debugf(...) Serial.printf(__VA_ARGS__)
+#else
+#define debug(x)
+#define debugln(x)
+#define debugf(...)
+#endif
+
+//===========================================================/
 WiFiClient espClient;
 PubSubClient client(espClient);
 
@@ -80,15 +95,15 @@ void Task4code( void * Parameters );
 void setupWiFi() {
   WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  Serial.print("Connecting to WiFi");
+  debug("Connecting to WiFi");
   int retries = 0;
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
-    Serial.print(".");
+    debug(".");
     retries++;
     if (retries > 20) break;
   }
-  Serial.println(WiFi.localIP());
+  debugln(WiFi.localIP());
 }
 
 void setupMQTT() {
@@ -97,12 +112,12 @@ void setupMQTT() {
 
 void reconnectMQTT() {
   while (!client.connected()) {
-    Serial.print("Attempting MQTT connection...");
+    debug("Attempting MQTT connection...");
     if (client.connect(MQTT_CLIENTID, MQTT_USERNAME, NULL)) {
-      Serial.println("connected");
+      debugln("connected");
     } else {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
+      debug("failed, rc=");
+      debug(client.state());
       delay(1000);
     }
   }
@@ -111,7 +126,7 @@ void reconnectMQTT() {
 void setup() {
   Serial.begin(115200);
   delay(1000);
-  Serial.println("Starting...");
+  debugln("Starting...");
   state = _WIFI_CONNECT;
 
   xTaskCreatePinnedToCore(Task1code, "CT1", 10000, NULL, 1, &CT1, 1);
@@ -123,22 +138,22 @@ void setup() {
 }
 
 void Task1code( void * Parameters ){
-  Serial.print("Task1 running on core ");
-  Serial.println(xPortGetCoreID());
+  debug("Task1 running on core ");
+  debugln(xPortGetCoreID());
 
   pinMode(CT1_PIN, INPUT); 
 
   // Print available heap memory before allocation
-  // Serial.printf("Free heap before malloc1: %u bytes\n", ESP.getFreeHeap());
+  // debugf("Free heap before malloc1: %u bytes\n", ESP.getFreeHeap());
 
   voltageSamples1 = (float*) malloc(NUM_SAMPLES * sizeof(float));
   if (voltageSamples1 == nullptr) {
-    Serial.println("Memory1 allocation failed!");
+    debugln("Memory1 allocation failed!");
     while (true); // Halt
   }
 
   // Print available heap memory after allocation
-  // Serial.printf("Free heap after malloc1: %u bytes\n", ESP.getFreeHeap());
+  // debugf("Free heap after malloc1: %u bytes\n", ESP.getFreeHeap());
 
   delay(100);
 
@@ -197,13 +212,13 @@ void Task1code( void * Parameters ){
         unsigned long endTime1 = millis();
         unsigned long elapsedTime1 = endTime1 - startTime1;
 
-        Serial.printf("Vavg1: %.3f V, Vrms1: %.3f V, Is1: %.3f A, Ip1: %.3f A, Time1: %lu ms\n", Vavg1, Vrms1, Is1, Ip1, elapsedTime1);
+        debugf("Vavg1: %.3f V, Vrms1: %.3f V, Is1: %.3f A, Ip1: %.3f A, Time1: %lu ms\n", Vavg1, Vrms1, Is1, Ip1, elapsedTime1);
         
         // Reset sample index to reuse memory
         sampleIndex1 = 0;
 
         // Print available heap memory after one loop
-        // Serial.printf("Free heap after one loop1: %u bytes\n", ESP.getFreeHeap());
+        // debugf("Free heap after one loop1: %u bytes\n", ESP.getFreeHeap());
 
         delay(500);
       }
@@ -212,22 +227,22 @@ void Task1code( void * Parameters ){
 }
 
 void Task2code( void * Parameters ){
-  Serial.print("Task2 running on core ");
-  Serial.println(xPortGetCoreID());
+  debug("Task2 running on core ");
+  debugln(xPortGetCoreID());
 
   pinMode(CT2_PIN, INPUT);
 
   // Print available heap memory before allocation
-  // Serial.printf("Free heap before malloc2: %u bytes\n", ESP.getFreeHeap());
+  // debugf("Free heap before malloc2: %u bytes\n", ESP.getFreeHeap());
 
   voltageSamples2 = (float*) malloc(NUM_SAMPLES * sizeof(float));
   if (voltageSamples2 == nullptr) {
-    Serial.println("Memory2 allocation failed!");
+    debugln("Memory2 allocation failed!");
     while (true); // Halt
   }
 
   // Print available heap memory after allocation
-  // Serial.printf("Free heap after malloc2: %u bytes\n", ESP.getFreeHeap());
+  // debugf("Free heap after malloc2: %u bytes\n", ESP.getFreeHeap());
 
   delay(100);
 
@@ -287,13 +302,13 @@ void Task2code( void * Parameters ){
         unsigned long endTime2 = millis();
         unsigned long elapsedTime2 = endTime2 - startTime2;
 
-        Serial.printf("Vavg2: %.3f V, Vrms2: %.3f V, Is2: %.3f A, Ip2: %.3f A, Time2: %lu ms\n", Vavg2, Vrms2, Is2, Ip2, elapsedTime2);
+        debugf("Vavg2: %.3f V, Vrms2: %.3f V, Is2: %.3f A, Ip2: %.3f A, Time2: %lu ms\n", Vavg2, Vrms2, Is2, Ip2, elapsedTime2);
         
         // Reset sample index to reuse memory
         sampleIndex2 = 0;
 
         // Print available heap memory after one loop
-        // Serial.printf("Free heap after one loop2: %u bytes\n", ESP.getFreeHeap());
+        // debugf("Free heap after one loop2: %u bytes\n", ESP.getFreeHeap());
 
         delay(500);
       }
@@ -302,15 +317,15 @@ void Task2code( void * Parameters ){
 }
 
 void Task3code( void * Parameters ){
-  Serial.print("Task3 running on core ");
-  Serial.println(xPortGetCoreID());
+  debug("Task3 running on core ");
+  debugln(xPortGetCoreID());
 
-  // Serial.println("MAX6675 Starting......");
+  // debugln("MAX6675 Starting......");
   // wait for MAX chip to stabilize
   delay(1000);
 
   // Print available heap memory before allocation
-  // Serial.printf("Free heap before Task3: %u bytes\n", ESP.getFreeHeap());
+  // debugf("Free heap before Task3: %u bytes\n", ESP.getFreeHeap());
 
   for(;;){
     unsigned long startTime3 = millis(); // Start timing when beginning new sample batch
@@ -326,27 +341,27 @@ void Task3code( void * Parameters ){
     unsigned long endTime3 = millis();
     unsigned long elapsedTime3 = endTime3 - startTime3;
 
-    Serial.printf("KTemperatureC: %.2f °C\n | KTemperatureF: %.2f °C\n | Time3: %lu ms\n", temperatureC, temperatureF, elapsedTime3);
+    debugf("KTemperatureC: %.2f °C\n | KTemperatureF: %.2f °C\n | Time3: %lu ms\n", temperatureC, temperatureF, elapsedTime3);
 
     // Print available heap memory after one loop
-    // Serial.printf("Free heap after one loop4: %u bytes\n", ESP.getFreeHeap());
+    // debugf("Free heap after one loop4: %u bytes\n", ESP.getFreeHeap());
 
     delay(1000);
   }
 }
 
 void Task4code( void * Parameters ){
-  Serial.print("Task4 running on core ");
-  Serial.println(xPortGetCoreID());
+  debug("Task4 running on core ");
+  debugln(xPortGetCoreID());
 
   pinMode(IR_PIN, INPUT);
 
-  // Serial.println("MD0662 Starting.....");
+  // debugln("MD0662 Starting.....");
   // wait for MD chip to stabilize
   delay(1000);
 
   // Print available heap memory before allocation
-  // Serial.printf("Free heap before Task4: %u bytes\n", ESP.getFreeHeap());
+  // debugf("Free heap before Task4: %u bytes\n", ESP.getFreeHeap());
 
   for(;;){
     float irTempSum = 0.0;
@@ -370,10 +385,10 @@ void Task4code( void * Parameters ){
     unsigned long endTime4 = millis();
     unsigned long elapsedTime4 = endTime4 - startTime4;
 
-    Serial.printf("IR Sensor -> ADC: %d | Temperature: %.2f °C\n | Time4: %lu ms\n", irAdcRaw, irTemperature, elapsedTime4);
+    debugf("IR Sensor -> ADC: %d | Temperature: %.2f °C\n | Time4: %lu ms\n", irAdcRaw, irTemperature, elapsedTime4);
 
     // Print available heap memory after one loop
-    // Serial.printf("Free heap after one loop4: %u bytes\n", ESP.getFreeHeap());
+    // debugf("Free heap after one loop4: %u bytes\n", ESP.getFreeHeap());
 
     delay(1000);
   }
@@ -413,9 +428,9 @@ void loop() {
         payload += "\"temperatureIR\": " + String(irTemperature, 1);
         payload += "}";
         if (client.publish(MQTT_TELE_TOPIC, payload.c_str())) {
-          Serial.println("Data sent: " + payload);
+          debugln("Data sent: " + payload);
         } else {
-          Serial.println("Failed to send data");
+          debugln("Failed to send data");
           error_count++;
           if (error_count >= Error_count_th) state = _DISCONNECT;
         }
