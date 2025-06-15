@@ -384,7 +384,7 @@ void Task3code( void * Parameters ){
     // Print available heap memory after one loop
     // Serial.printf("Free heap after one loop4: %u bytes\n", ESP.getFreeHeap());
 
-    delay(100);
+    delay(500);
   }
 }
 
